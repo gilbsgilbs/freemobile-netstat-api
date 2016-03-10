@@ -1,0 +1,161 @@
+@import "reset.css";
+@logo-height: 50px;
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #FFF;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    display: block;
+    margin: 8px;
+    color: #222;
+    font: 14px/19px Roboto, sans-serif;
+    font-weight: 400;
+    letter-spacing: .1;
+    padding: 0 10px;
+}
+
+#main {
+    width: 940px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#header {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 12px;
+
+    img {
+        float: left;
+    }
+}
+
+#footer {
+    font-size: 80%;
+    color: #aaa;
+    margin-top: 16px;
+
+    a {
+        color: #999;
+    }
+    #copyright {
+        float: left;
+    }
+    #license {
+        text-align: right;
+    }
+}
+
+a {
+    text-decoration: none;
+    font-weight: bold;
+    color: #666;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+h1, h2 {
+    color: #3366FF;
+}
+
+h1 {
+    display: inline;
+    // same value than img height
+    line-height: @logo-height;
+    margin-left: 8px;
+    font-size: 180%;
+    font-weight: bold;
+}
+
+h2 {
+    margin: 1em 0;
+    font-size: 120%;
+    font-weight: bold;
+}
+
+p {
+    margin: 0.5em 0;
+}
+
+ul {
+    margin: 1em 0;
+}
+
+#marketplace {
+    text-align: center;
+    margin-top: 3em;
+}
+
+#disclaimer {
+    text-align: center;
+    padding: 0.5em;
+    margin: 3em 0;
+    font-size: 80%;
+}
+
+#app-screenshots {
+    text-align: center;
+
+    li {
+        display: inline;
+        list-item-type: none;
+        margin: 0 10px;
+    }
+}
+
+#marketplace-links {
+    text-align: center;
+
+    li {
+        display: inline;
+        list-item-type: none;
+        margin: 0 10px;
+    }
+    img {
+        vertical-align: middle;
+    }
+}
+
+#social {
+    text-align: right;
+    float: right;
+    margin-top: 1em;
+}
+
+#network-usage-spinner {
+    text-align: center;
+    line-height: 350px;
+    font-size: 80%;
+    color: #444;
+}
+
+#network-usage-chart, #chart-help {
+    display: none;
+}
+
+#chart-help {
+    text-align: center;
+    font-size: 80%;
+    color: #888;
+}
+
+#aka {
+    display: none;
+}
+
+#stats-date-range-selection {
+    text-align: right;
+
+    #date-range-picker {
+        background-color:#49e;
+        color:white;
+        padding:3px;
+        cursor:pointer;
+        border-radius:4px;
+    }
+}

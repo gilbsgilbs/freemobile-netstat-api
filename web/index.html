@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Free Mobile Netstat</title>
+    <meta name="description"
+      content="Statistiques d'utilisation du réseau Free Mobile en France. Découvrez la couverture réelle du réseau Free Mobile par rapport à celui d'Orange, sur la base de données collectées par une application Android installée chez les abonnés Free Mobile.">
+    <meta name="author" content="Alexandre Roman">
+    <link rel="author" href="https://plus.google.com/108697477633201807305/" />
+    <link rel="shortcut icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="css/screen.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="libs/slick/slick/slick.css" type="text/css" />
+    <link rel="stylesheet" href="libs/slick/slick/slick-theme.css" type="text/css" />
+    <link rel="stylesheet" href="css/slick.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="libs/jquery-date-range-picker/daterangepicker.css" type="text/css" />
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="libs/jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="libs/moment-2.10.6.min.js"></script>
+
+    <script type="text/javascript" src="libs/jquery-date-range-picker/jquery.daterangepicker.js"></script>
+    <script type="text/javascript" src="libs/slick/slick/slick.min.js"></script>
+
+    <script type="text/javascript" src="js/charts.js"></script>
+</head>
+<body itemscope itemtype="http://schema.org/Product">
+  <div id="main">
+    <div id="social">
+      <div class="g-plusone" data-size="small"></div>
+    </div>
+    <div id="header">
+      <img src="images/logo.png" alt="Logo de Free Mobile Netstat" width="50" height="50" />
+      <h1>Free Mobile Netstat</h1>
+    </div>
+    <div id="content">
+      <div class="charts-slider" style="display: none;">
+          <div id="network-usage-chart"></div>
+          <div id="network-4g-usage-chart"></div>
+      </div>
+      <div id="network-usage-spinner">Chargement des données en cours...</div>
+      <div id="stats-date-range-selection">
+          Période : <span id="date-range-picker"></span>
+      </div>
+      <p id="chart-help">
+        Statistiques sur <strong><span id="days"></span> jours</strong> avec <strong><span id="users"></span>
+          utilisateurs</strong>
+      </p>
+      <h2 itemprop="name">Participez à la collecte des données !</h2>
+      <p>Ce site est alimenté par une application installée sur votre smartphone Android.</p>
+      <p itemprop="description">
+        L'application <a href="https://play.google.com/store/apps/details?id=org.pixmob.freemobile.netstat">Free
+          Mobile Netstat</a> surveille en tâche de fond l'opérateur réseau auquel votre téléphone est connecté.
+        Dès que l'opérateur réseau change, une notification apparaît sur votre téléphone, avec un signal
+        sonore (configurable). Votre position et les antennes utilisées par votre téléphone ne sont pas
+        enregistrées par l'application.
+      </p>
+      <p>L'utilisation de la batterie au cours de la journée est également enregistrée, afin que vous
+        puissiez constater les conséquences de l'utilisation du réseau d'un opérateur sur votre batterie.</p>
+      <ul id="app-screenshots">
+        <li><img src="images/appscreenshot1.png" itemprop="image"
+          alt="Écran principal de Free Mobile Netstat sous Android" /></li>
+        <li><img src="images/appscreenshot2.png" itemprop="image"
+          alt="Écran détaillé des connexions" /></li>
+      </ul>
+      <p>La collecte des données est totalement anonyme et optionnelle. Si la collecte est activée, les
+        statistiques d'utilisation du réseau de chaque opérateur sont envoyées sur ce site, qui compile
+        l'ensemble des résultats pour les présenter graphiquement. La couverture réseau est recalculée
+        automatiquement chaque jour.</p>
+      <p>L'application supporte toutes les versions d'Android depuis la 2.1.</p>
+      <p>
+        Retrouvez toute l'actualité de l'application Free Mobile Netstat sur <a
+          href="https://plus.google.com/u/1/+FreemobilenetstatAppspot" rel="publisher">Google+</a>.
+      </p>
+      <div id="marketplace">
+        <p>
+          Téléchargez l'application sur le <a
+            href="https://play.google.com/store/apps/details?id=org.pixmob.freemobile.netstat">Google Play
+            Store</a>.
+        </p>
+        <ul id="marketplace-links">
+          <li><a href="https://play.google.com/store/apps/details?id=org.pixmob.freemobile.netstat"><img
+              src="http://www.android.com/images/brand/get_it_on_play_logo_large.png" width="172" height="60" /></a></li>
+          <li><a href="https://play.google.com/store/apps/details?id=org.pixmob.freemobile.netstat">
+              <img
+              src="http://chart.apis.google.com/chart?cht=qr&chs=100x100&chl=https%3A//play.google.com/store/apps/details%3Fid%3Dorg.pixmob.freemobile.netstat&chld=H|0"
+              width="100" height="100" alt="Installer Free Mobile Netstat sur Android" />
+          </a></li>
+        </ul>
+      </div>
+      <p id="disclaimer">
+        Ce site n'est pas lié à <a href="http://mobile.free.fr">Free Mobile</a>.
+      </p>
+    </div>
+    <div id="footer">
+      <p id="copyright">
+        Copyright &copy; 2012 <a href="https://github.com/pixmob" rel="me">Pixmob</a>
+      </p>
+      <p id="aka">
+        <a href="https://plus.google.com/108697477633201807305/posts" rel="me">Alexandre Roman</a><a
+          href="https://github.com/alexandreroman" rel="me">Alexandre Roman @ GitHub</a>
+      </p>
+      <p id="license">
+        Le code source du site est <a href="http://github.com/gilbsgilbs/freemobilenetstat-gae">disponible</a>
+        sous <a href="https://raw.github.com/gilbsgilbs/freemobilenetstat-gae/master/LICENSE">licence ASL 2.0</a>.
+      </p>
+    </div>
+    <a href="https://github.com/gilbsgilbs/freemobilenetstat-gae"><img
+      style="position: absolute; top: 0; right: 0; border: 0;"
+      src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
+  </div>
+</body>
+</html>
