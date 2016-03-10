@@ -195,6 +195,8 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
             raise HTTPException.BadRequest('Date must me in `YYYYMMDD` format.')
         if end_date < start_date:
             raise HTTPException.BadRequest('Start date must be lower than end date.')
+        if end_date > datetime.datetime.now(tz=config.TIMEZONE).strftime("%Y%m%d"):
+            raise HTTPException.BadRequest('End date can\'t be in the future.')
 
     @staticmethod
     def _query_stat_aggregation(key, start_date, end_date, only_4g=False):
