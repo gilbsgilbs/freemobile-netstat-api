@@ -144,6 +144,6 @@ function draw4gNetworkUsageChart(onOrange, onFreeMobile3g, onFreeMobile4g, onFre
 
     var chart = new google.visualization.PieChart($("#network-4g-usage-chart").get(0));
     var options = CHART_OPTIONS;
-    options.colors = [ "#FF6600", "#CD1E25", "#660F12", "#D2343A" ];
+    options.colors = [ "#FF6600", "#D2343A", "#CD1E25", "#660F12" ];
     chart.draw(data, options);
 }
