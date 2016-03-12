@@ -150,7 +150,7 @@ class DeviceStat(Resource, ConnectedMixin):
         :return bool: True if the device is 4g
         """
         return model.DailyDeviceStat.objects(
-                device_model=device.model, device_brand=device.brand
+            device_model=device.model, device_brand=device.brand
         ).aggregate_sum('time_on_free_mobile_4g') > config.IS_4G_THRESHOLD
 
     @validate(_device_stat_schema)
@@ -208,7 +208,7 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
             extra_params['is_4g'] = True
 
         return model.DailyDeviceStat.objects(
-                date__gte=start_date, date__lte=end_date, **extra_params
+            date__gte=start_date, date__lte=end_date, **extra_params
         ).aggregate_sum(key)
 
     @staticmethod
@@ -228,7 +228,7 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
         aggregation = [
             aggregate for aggregate in
             model.DailyDeviceStat.objects(
-                    date__gte=start_date, date__lte=end_date, **extra_params
+                date__gte=start_date, date__lte=end_date, **extra_params
             ).aggregate(*pipeline)
         ]
 
