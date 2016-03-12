@@ -30,8 +30,8 @@ function getLimitDates() {
 
 function initDateRangePicker() {
     var $dateRangePicker = $('#date-range-picker');
-    var start = moment().subtract(6, 'days');
-    var end = moment();
+    var start = moment().subtract(7, 'days');
+    var end = moment().subtract(1, 'days');
 
     $dateRangePicker.dateRangePicker({
         format: 'DD/MM/YYYY',
