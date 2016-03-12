@@ -237,13 +237,19 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
 
         return aggregation[0]['count']
 
+    @staticmethod
+    def _str_date(dt):
+        """
+        Convert a offset-aware datetime to a YYYYMMDD string.
+        """
+        return dt.strftime("%Y%m%d")
+
     def get(self):
             """
             Retrieve all statistics
             """
-            default_start_date = (datetime.datetime.now(tz=config.TIMEZONE) -
-                                  datetime.timedelta(days=6)).strftime("%Y%m%d")
-            default_end_date = datetime.datetime.now(tz=config.TIMEZONE).strftime("%Y%m%d")
+            default_start_date = self._str_date(datetime.datetime.now(tz=config.TIMEZONE) - datetime.timedelta(days=6))
+            default_end_date = self._str_date(datetime.datetime.now(tz=config.TIMEZONE))
 
             start_date = request.args.get('start_date', default_start_date)
             end_date = request.args.get('end_date', default_end_date)
@@ -283,11 +289,11 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
                 },
             }
 
-            if end_date == default_end_date:
-                # Cache one hour if end_date is today
+            if default_start_date <= end_date:
+                # Cache one hour if stat is less than one week old
                 self.cache.set(start_date + '-' + end_date, stats, timeout=60 * 60)
             else:
-                # Cache forever otherwise
+                # Cache forever otherwise because it cannot change again.
                 self.cache.set(start_date + '-' + end_date, stats, timeout=0)
 
             return stats
