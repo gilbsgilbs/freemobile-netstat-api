@@ -18,6 +18,7 @@ var CHART_OPTIONS = {
 // Set a callback to run when the Google Visualization API is loaded.
 google.setOnLoadCallback(initChart);
 var sliderInitialized = false;
+var currentSlideIndex = 0;
 
 function getLimitDates() {
     var $dateRangePicker = $('#date-range-picker');
@@ -33,15 +34,15 @@ function initDateRangePicker() {
     var end = moment();
 
     $dateRangePicker.dateRangePicker({
-            format: 'DD/MM/YYYY',
-            startOfWeek: 'monday',
-            separator: ' -> ',
-            getValue: function() {
-                return this.innerHTML;
-            },
-            setValue: function(s) {
-                this.innerHTML = s;
-            }
+        format: 'DD/MM/YYYY',
+        startOfWeek: 'monday',
+        separator: ' -> ',
+        getValue: function() {
+            return this.innerHTML;
+        },
+        setValue: function(s) {
+            this.innerHTML = s;
+        }
     })
     .bind('datepicker-change', function() {
         loadData();
@@ -56,7 +57,9 @@ function initChart() {
 
 function loadData() {
     var limitDates = getLimitDates();
-    $.get('/2/chart/network-usage?start_date=' + limitDates[0] + '&end_date=' + limitDates[1] + '', drawCharts).error(dataLoadError);
+    $.get(
+        '/2/chart/network-usage?start_date=' + limitDates[0] + '&end_date=' + limitDates[1] + '', drawCharts
+    ).error(dataLoadError);
 }
 
 function dataLoadError() {
@@ -66,14 +69,13 @@ function dataLoadError() {
 }
 
 function drawCharts(jsonData) {
-    var usersElement = $("#users");
-
     var stats_global = jsonData["stats_global"];
     var stats_4g = jsonData["stats_4g"];
     var users = stats_global["users"];
     var users4g = stats_4g["users"];
 
-    usersElement.text(users);
+    updateUsersCounter(users, users4g)
+
     var limitDates = getLimitDates();
     var days = moment(limitDates[1], 'YYYYMMDD').diff(moment(limitDates[0], 'YYYYMMDD'), 'days') + 1;
     $("#days").text(days);
@@ -93,19 +95,25 @@ function drawCharts(jsonData) {
         // slider by default.
         $chartsSlider.slick({infinite: true});
         sliderInitialized = true;
+
+        $chartsSlider.on('beforeChange', function (event, slick, oldIndex, newIndex) {
+            currentSlideIndex = newIndex;
+            updateUsersCounter(users, users4g)
+        });
     }
 
     $("#network-usage-chart").fadeIn(function() {
        $("#chart-help").slideDown();
     });
-    $chartsSlider.on('beforeChange', function (event, slick, oldIndex, newIndex) {
-        if (newIndex === 0) {
-            usersElement.text(users);
-        }
-        else if (newIndex === 1) {
-            usersElement.text(users4g);
-        }
-    });
+}
+
+function updateUsersCounter(users, users4g) {
+    var slideIndexesMapper = {
+        0: users,
+        1: users4g,
+    };
+
+    $("#users").text(slideIndexesMapper[currentSlideIndex]);
 }
 
 function drawNetworkUsageChart(onOrange, onFreeMobile, onFreeMobileFemtocell) {
