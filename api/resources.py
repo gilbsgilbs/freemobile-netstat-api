@@ -9,7 +9,7 @@ from flask import request
 from api import config, model
 from api.db import ConnectedMixin
 from api.cache import CacheMixin
-from api.utils import switch_dict_keys_to_snake, datetime_to_epoch
+from api.utils import switch_dict_keys_to_snake, datetime_to_epoch, to_snake_case
 
 
 class InfoService(Resource):
@@ -64,7 +64,7 @@ class Device(Resource, ConnectedMixin):
         """
         device = model.Device.objects(device_identifier=device_id).first()
         if device:
-            raise HTTPException.Conflict('The device id given already exists in the database.')
+            raise HTTPException.Conflict('The provided device id already exists in database.')
 
         device = model.Device(device_identifier=device_id, brand=params['brand'], model=params['model'])
         device.save()
@@ -153,6 +153,33 @@ class DeviceStat(Resource, ConnectedMixin):
             device_model=device.model, device_brand=device.brand
         ).aggregate_sum('time_on_free_mobile_4g') > config.IS_4G_THRESHOLD
 
+    @staticmethod
+    def _get_or_create_stat_summary(date):
+        """
+        Return the DailyStatSummary of date if it exists. If it does not exists, it creates and returns it.
+        """
+        stat_summary = model.DailyStatSummary.objects(date=date).first()
+        if stat_summary:
+            return stat_summary
+        return model.DailyStatSummary(date=date)
+
+    @staticmethod
+    def _callback_on_attr(obj, name, call):
+        """
+        Updates object obj's attribute name, calling call on it.
+
+        Example:
+            obj.foo = 0
+            _callback_on_attr(obj, 'foo', lambda foo_value: foo_value + 1)
+            assert obj.foo == 1
+
+        :param obj: An object
+        :param name: Attribute name to update
+        :param call: The callable that will be called on attribute name
+        """
+        old_val = getattr(obj, name)
+        setattr(obj, name, call(old_val))
+
     @validate(_device_stat_schema)
     def post(self, device_id, date, params):
         """
@@ -169,6 +196,7 @@ class DeviceStat(Resource, ConnectedMixin):
         if self._statistics_already_uploaded(device_id, date):
             return {'status': 'Statistics already uploaded.'}, 200
 
+        # Save daily device stat
         params['deviceIdentifier'] = device_id
         params['deviceBrand'] = device.brand
         params['deviceModel'] = device.model
@@ -176,6 +204,16 @@ class DeviceStat(Resource, ConnectedMixin):
         params['is4g'] = self._is_device_4g(device)
         daily_device_stat = model.DailyDeviceStat(**switch_dict_keys_to_snake(params))
         daily_device_stat.save()
+
+        # Update stat summary
+        daily_stat_summary = self._get_or_create_stat_summary(date)
+        for stat_global in ('timeOnOrange', 'timeOnFreeMobile', 'timeOnFreeMobileFemtocell', ):
+            self._callback_on_attr(daily_stat_summary.stats_global, to_snake_case(stat_global),
+                                   lambda old_duration: old_duration + params[stat_global])
+        for stat_4g in ('timeOnOrange', 'timeOnFreeMobile3g', 'timeOnFreeMobile4g', 'timeOnFreeMobileFemtocell', ):
+            self._callback_on_attr(daily_stat_summary.stats_4g, to_snake_case(stat_4g),
+                                   lambda old_duration: old_duration + params[stat_4g])
+        daily_stat_summary.save()
 
         return daily_device_stat.as_resource()
 
@@ -203,18 +241,19 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
         """
         Query a stat aggregation on the whole database.
         """
-        extra_params = {}
         if only_4g:
-            extra_params['is_4g'] = True
+            key = 'stats_4g.' + key
+        else:
+            key = 'stats_global.' + key
 
-        return model.DailyDeviceStat.objects(
-            date__gte=start_date, date__lte=end_date, **extra_params
+        return model.DailyStatSummary.objects(
+            date__gte=start_date, date__lte=end_date
         ).aggregate_sum(key)
 
     @staticmethod
     def _count_distinct_users(start_date, end_date, only_4g=False):
         """
-        Count distinct users
+        Count distinct users.
         """
         extra_params = {}
         if only_4g:
@@ -260,14 +299,17 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
             if stats is not None:
                 return stats
 
+            time_on_femtocell = self._query_stat_aggregation('time_on_free_mobile_femtocell', start_date, end_date)
+
             stats = {
                 'stats_global': {
                     'time_on_orange':
                         self._query_stat_aggregation('time_on_orange', start_date, end_date),
                     'time_on_free_mobile':
-                        self._query_stat_aggregation('time_on_free_mobile', start_date, end_date),
+                        # We have to subtract the time on femtocell, since femtocell is already included in free mobile
+                        self._query_stat_aggregation('time_on_free_mobile', start_date, end_date) - time_on_femtocell,
                     'time_on_free_mobile_femtocell':
-                        self._query_stat_aggregation('time_on_free_mobile_femtocell', start_date, end_date),
+                        time_on_femtocell,
                     'users':
                         self._count_distinct_users(start_date, end_date),
                 },
