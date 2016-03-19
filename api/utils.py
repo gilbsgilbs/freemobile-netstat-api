@@ -50,3 +50,16 @@ def datetime_to_epoch(dt):
     Convert a datetime to an unix epoch
     """
     return int((dt - datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds())
+
+
+def date_string_to_datetime(date_string):
+    """
+    Convert a YYYYMMDD date to datetime
+    :param date_string: The date in YYYYMMDD format
+    :return: a tz naive datetime
+    :raise: ValueError when date is incorrect
+    """
+    if len(date_string) != 8:
+        raise ValueError
+    return datetime.datetime.strptime(date_string, '%Y%m%d')
+

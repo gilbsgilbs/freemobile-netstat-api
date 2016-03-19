@@ -9,7 +9,7 @@ from flask import request
 from api import config, model
 from api.db import ConnectedMixin
 from api.cache import CacheMixin
-from api.utils import switch_dict_keys_to_snake, datetime_to_epoch, to_snake_case
+from api.utils import switch_dict_keys_to_snake, to_snake_case, datetime_to_epoch, date_string_to_datetime
 
 
 class InfoService(Resource):
@@ -93,12 +93,10 @@ class DeviceStat(Resource, ConnectedMixin):
     @staticmethod
     def _date_to_datetime(date):
         """
-        Validate the date format
+        Validate the date format and return a datetime
         """
         try:
-            if not len(date) == 8:
-                raise ValueError
-            return datetime.datetime.strptime(date, '%Y%m%d')
+            return date_string_to_datetime(date)
         except ValueError:
             raise HTTPException.BadRequest('Wrong date format.')
 
@@ -225,9 +223,26 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
     """
     Provide aggregated statistics
     """
+    _MAX_DATE_RANGE_DAYS = 31  # Above this date range, an exception will be raised. This prevents computing stats over
+                               # too much documents, which could freeze the API and the database.
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         CacheMixin.__init__(self)
+
+    @staticmethod
+    def _assert_maximum_timedelta(start_date_string, end_date_string, max_days):
+        """
+        Assert that the timedelta between start_date and end_date does not exceed max_days
+        """
+        try:
+            start_date_dt = date_string_to_datetime(start_date_string)
+            end_date_dt = date_string_to_datetime(end_date_string)
+        except ValueError:
+            raise HTTPException.BadRequest('Wrong date format.')
+
+        if datetime.timedelta(days=max_days) <= end_date_dt - start_date_dt:
+            raise HTTPException.BadRequest('Too long date range (maximum is {} days).'.format(max_days))
 
     @staticmethod
     def _assert_valid_date_range(start_date, end_date):
@@ -238,6 +253,8 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
             raise HTTPException.BadRequest('Start date must be lower than end date.')
         if end_date > datetime.datetime.now(tz=config.TIMEZONE).strftime("%Y%m%d"):
             raise HTTPException.BadRequest('End date can\'t be in the future.')
+        NetworkUsageChart._assert_maximum_timedelta(start_date, end_date, NetworkUsageChart._MAX_DATE_RANGE_DAYS)
+
 
     @staticmethod
     def _query_stat_aggregation(key, start_date, end_date, only_4g=False):
