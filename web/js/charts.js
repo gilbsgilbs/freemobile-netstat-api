@@ -124,14 +124,14 @@ function drawNetworkUsageChart(onOrange, onFreeMobile, onFreeMobileFemtocell) {
     data.addRows(3);
     data.setCell(0, 0, "Orange");
     data.setCell(0, 1, onOrange, "");
-    data.setCell(1, 0, "Free Mobile");
-    data.setCell(1, 1, onFreeMobile, "");
-    data.setCell(2, 0, "Femtocell");
-    data.setCell(2, 1, onFreeMobileFemtocell, "");
+    data.setCell(1, 0, "Femtocell");
+    data.setCell(1, 1, onFreeMobileFemtocell, "");
+    data.setCell(2, 0, "Free Mobile");
+    data.setCell(2, 1, onFreeMobile, "");
 
     var chart = new google.visualization.PieChart($("#network-usage-chart").get(0));
     var options = CHART_OPTIONS;
-    options.colors = [ "#FF6600", "#CD1E25", "#D2343A" ];
+    options.colors = [ "#FF6600", "#D2343A", "#CD1E25" ];
     chart.draw(data, options);
 }
 
