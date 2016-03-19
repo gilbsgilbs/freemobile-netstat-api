@@ -210,6 +210,9 @@ class DeviceStat(Resource, ConnectedMixin):
         for stat_global in ('timeOnOrange', 'timeOnFreeMobile', 'timeOnFreeMobileFemtocell', ):
             self._callback_on_attr(daily_stat_summary.stats_global, to_snake_case(stat_global),
                                    lambda old_duration: old_duration + params[stat_global])
+        # Femtocell is a "network type", hence it is already included in time_on_freemobile. We must subtract it.
+        daily_stat_summary.stats_global.time_on_free_mobile -= params['timeOnFreeMobileFemtocell']
+
         for stat_4g in ('timeOnOrange', 'timeOnFreeMobile3g', 'timeOnFreeMobile4g', 'timeOnFreeMobileFemtocell', ):
             self._callback_on_attr(daily_stat_summary.stats_4g, to_snake_case(stat_4g),
                                    lambda old_duration: old_duration + params[stat_4g])
@@ -299,17 +302,15 @@ class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
             if stats is not None:
                 return stats
 
-            time_on_femtocell = self._query_stat_aggregation('time_on_free_mobile_femtocell', start_date, end_date)
-
             stats = {
                 'stats_global': {
                     'time_on_orange':
                         self._query_stat_aggregation('time_on_orange', start_date, end_date),
                     'time_on_free_mobile':
                         # We have to subtract the time on femtocell, since femtocell is already included in free mobile
-                        self._query_stat_aggregation('time_on_free_mobile', start_date, end_date) - time_on_femtocell,
+                        self._query_stat_aggregation('time_on_free_mobile', start_date, end_date),
                     'time_on_free_mobile_femtocell':
-                        time_on_femtocell,
+                        self._query_stat_aggregation('time_on_free_mobile_femtocell', start_date, end_date),
                     'users':
                         self._count_distinct_users(start_date, end_date),
                 },
