@@ -149,7 +149,7 @@ class DeviceStat(ConnectedMixin, Resource):
         """
         return model.DailyDeviceStat.objects(
             device_model=device.model, device_brand=device.brand
-        ).aggregate_sum('time_on_free_mobile_4g') > config.IS_4G_THRESHOLD
+        ).sum('time_on_free_mobile_4g') > config.IS_4G_THRESHOLD
 
     @staticmethod
     def _get_or_create_stat_summary(date):
@@ -270,7 +270,7 @@ class NetworkUsageChart(ConnectedMixin, CacheMixin, Resource):
 
         return model.DailyStatSummary.objects(
             date__gte=start_date, date__lte=end_date
-        ).aggregate_sum(key)
+        ).sum(key)
 
     @staticmethod
     def _count_distinct_users(start_date, end_date, only_4g=False):
