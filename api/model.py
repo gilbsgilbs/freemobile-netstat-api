@@ -3,9 +3,19 @@ import datetime
 
 from bson import Int64
 from mongoengine import (Document, DateTimeField, StringField, BooleanField, EmbeddedDocument, EmbeddedDocumentField,
-                         LongField)
+                         LongField as MongoEngineLongField)
 
 from api import config
+
+
+class LongField(MongoEngineLongField):
+    """
+    Temporary workaround to force MongoEngine LongField to be stored as 64 bits integers in Python 3.
+    We can remove this class and use the default MongoEngine LongField when this pull request is merged:
+    https://github.com/MongoEngine/mongoengine/pull/1254
+    """
+    def to_mongo(self, value):
+        return Int64(value)
 
 
 class FMNSDocument(Document):
@@ -81,8 +91,6 @@ class DailyStatSummary(FMNSDocument):
     """
     Daily statistic representation for whole devices.
     It's just an optimization to prevent aggregating on the whole DailyDeviceStats.
-
-    Can't be capped as LongField will cast from int to long and take more space.
     """
     class StatsGlobal(EmbeddedDocument):
         time_on_orange = LongField(default=0, required=True)
