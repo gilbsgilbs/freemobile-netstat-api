@@ -3,7 +3,7 @@ import datetime
 
 from bson import Int64
 from mongoengine import (Document, DateTimeField, StringField, BooleanField, EmbeddedDocument, EmbeddedDocumentField,
-                         LongField as MongoEngineLongField)
+                         LongField)
 
 from api import config
 
