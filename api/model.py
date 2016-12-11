@@ -8,16 +8,6 @@ from mongoengine import (Document, DateTimeField, StringField, BooleanField, Emb
 from api import config
 
 
-class LongField(MongoEngineLongField):
-    """
-    Temporary workaround to force MongoEngine LongField to be stored as 64 bits integers in Python 3.
-    We can remove this class and use the default MongoEngine LongField when this pull request is merged:
-    https://github.com/MongoEngine/mongoengine/pull/1254
-    """
-    def to_mongo(self, value):
-        return Int64(value)
-
-
 class FMNSDocument(Document):
     """
     Base abstract document for FMNS documents

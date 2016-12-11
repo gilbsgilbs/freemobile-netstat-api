@@ -1,6 +1,6 @@
-flask==0.10.1
-flask-restful==0.3.4
-cerberus==0.9
-mongoengine==0.10.6
-pylibmc==1.5.0
-pytz==2015.7
+flask==0.11.1
+flask-restful==0.3.5
+cerberus==1.0
+mongoengine==0.10.9
+pylibmc==1.5.1
+pytz

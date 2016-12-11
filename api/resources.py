@@ -48,7 +48,7 @@ def validate(schema):
     return validator
 
 
-class Device(Resource, ConnectedMixin):
+class Device(ConnectedMixin, Resource):
     """
     A device represents a physical device.
     """
@@ -56,7 +56,7 @@ class Device(Resource, ConnectedMixin):
         'brand': {'type': 'string', 'required': True, },
         'model': {'type': 'string', 'required': True, },
     }
-    
+
     @validate(_device_schema)
     def put(self, device_id, params):
         """
@@ -72,7 +72,7 @@ class Device(Resource, ConnectedMixin):
         return device.as_resource(), 201
 
 
-class DeviceStat(Resource, ConnectedMixin):
+class DeviceStat(ConnectedMixin, Resource):
     """
     A device stat is a 24h statistics summary for a Device.
     """
@@ -195,11 +195,13 @@ class DeviceStat(Resource, ConnectedMixin):
             return {'status': 'Statistics already uploaded.'}, 200
 
         # Save daily device stat
-        params['deviceIdentifier'] = device_id
-        params['deviceBrand'] = device.brand
-        params['deviceModel'] = device.model
-        params['date'] = date
-        params['is4g'] = self._is_device_4g(device)
+        params.update({
+            'deviceIdentifier': device_id,
+            'deviceBrand': device.brand,
+            'deviceModel': device.model,
+            'date': date,
+            'is4g': self._is_device_4g(device),
+        })
         daily_device_stat = model.DailyDeviceStat(**switch_dict_keys_to_snake(params))
         daily_device_stat.save()
 
@@ -219,7 +221,7 @@ class DeviceStat(Resource, ConnectedMixin):
         return daily_device_stat.as_resource()
 
 
-class NetworkUsageChart(Resource, ConnectedMixin, CacheMixin):
+class NetworkUsageChart(ConnectedMixin, CacheMixin, Resource):
     """
     Provide aggregated statistics
     """
