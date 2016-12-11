@@ -1,6 +1,6 @@
 flask==0.11.1
 flask-restful==0.3.5
-cerberus==1.0
+cerberus==1.0.1
 mongoengine==0.10.9
 pylibmc==1.5.1
 pytz
