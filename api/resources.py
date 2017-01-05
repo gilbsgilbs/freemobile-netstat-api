@@ -1,6 +1,6 @@
 import datetime
-import re
 
+import mongoengine
 from werkzeug import exceptions as HTTPException
 from flask_restful import Resource
 from cerberus import Validator
@@ -9,7 +9,8 @@ from flask import request
 from api import config, model
 from api.db import ConnectedMixin
 from api.cache import CacheMixin
-from api.utils import switch_dict_keys_to_snake, to_snake_case, datetime_to_epoch, date_string_to_datetime
+from api.utils import switch_dict_keys_to_snake, datetime_to_epoch, datetime_to_date_string, \
+    date_string_to_datetime, check_valid_date_range
 
 
 class InfoService(Resource):
@@ -154,29 +155,43 @@ class DeviceStat(ConnectedMixin, Resource):
     @staticmethod
     def _get_or_create_stat_summary(date):
         """
-        Return the DailyStatSummary of date if it exists. If it does not exists, it creates and returns it.
-        """
-        stat_summary = model.DailyStatSummary.objects(date=date).first()
-        if stat_summary:
-            return stat_summary
-        return model.DailyStatSummary(date=date)
+        Get or create a DailyStatSummary.
 
-    @staticmethod
-    def _callback_on_attr(obj, name, call):
+        :param date: The date of the DailyStatSummary
+        :type date: str
         """
-        Updates object obj's attribute name, calling call on it.
+        try:
+            # Always try to insert the StatSummary to avoid errors on concurrent inserts
+            model.DailyStatSummary(date=date).save(force_insert=True)
+        except mongoengine.errors.NotUniqueError:
+            pass
+        return model.DailyStatSummary.objects(date=date).first()
 
-        Example:
-            obj.foo = 0
-            _callback_on_attr(obj, 'foo', lambda foo_value: foo_value + 1)
-            assert obj.foo == 1
-
-        :param obj: An object
-        :param name: Attribute name to update
-        :param call: The callable that will be called on attribute name
+    def _update_daily_stat_summary(self, date, params):
         """
-        old_val = getattr(obj, name)
-        setattr(obj, name, call(old_val))
+        Update the daily stat summary.
+        :param date: The date of the daily stat summary (in YYYYMMDD format)
+        :type date: string
+        :param params: The query parameters
+        :type params: dict
+        """
+        daily_stat_summary = self._get_or_create_stat_summary(date)
+
+        daily_stat_summary.stats_global.modify(
+            inc__time_on_orange=params['timeOnOrange'],
+            # Femtocell is a "network type", hence it is already included in time_on_free_mobile. We must subtract it.
+            inc__time_on_free_mobile=params['timeOnFreeMobile'] - params['timeOnFreeMobileFemtocell'],
+            inc__time_on_free_mobile_femtocell=params['timeOnFreeMobileFemtocell'],
+        )
+
+        daily_stat_summary.stats_4g.modify(
+            inc__time_on_orange=params['timeOnOrange'],
+            inc__time_on_free_mobile_3g=params['timeOnFreeMobile3g'],
+            inc__time_on_free_mobile_4g=params['timeOnFreeMobile4g'],
+            inc__time_on_free_mobile_femtocell=params['timeOnFreeMobileFemtocell'],
+        )
+
+        daily_stat_summary.save()
 
     @validate(_device_stat_schema)
     def post(self, device_id, date, params):
@@ -192,6 +207,7 @@ class DeviceStat(ConnectedMixin, Resource):
         device = self._get_device_or_raise(device_id)
 
         if self._statistics_already_uploaded(device_id, date):
+            # We return a 200 here instead of a 409 because a 409 would make the device retry
             return {'status': 'Statistics already uploaded.'}, 200
 
         # Save daily device stat
@@ -205,28 +221,73 @@ class DeviceStat(ConnectedMixin, Resource):
         daily_device_stat = model.DailyDeviceStat(**switch_dict_keys_to_snake(params))
         daily_device_stat.save()
 
-        # Update stat summary
-        daily_stat_summary = self._get_or_create_stat_summary(date)
-        for stat_global in ('timeOnOrange', 'timeOnFreeMobile', 'timeOnFreeMobileFemtocell', ):
-            self._callback_on_attr(daily_stat_summary.stats_global, to_snake_case(stat_global),
-                                   lambda old_duration: old_duration + params[stat_global])
-        # Femtocell is a "network type", hence it is already included in time_on_freemobile. We must subtract it.
-        daily_stat_summary.stats_global.time_on_free_mobile -= params['timeOnFreeMobileFemtocell']
-
-        for stat_4g in ('timeOnOrange', 'timeOnFreeMobile3g', 'timeOnFreeMobile4g', 'timeOnFreeMobileFemtocell', ):
-            self._callback_on_attr(daily_stat_summary.stats_4g, to_snake_case(stat_4g),
-                                   lambda old_duration: old_duration + params[stat_4g])
-        daily_stat_summary.save()
+        self._update_daily_stat_summary(date, params)
 
         return daily_device_stat.as_resource()
 
 
+class DailyNetworkUsageChart(ConnectedMixin, Resource):
+    """
+    Provide bulk statistics of the network usage over time.
+    """
+    @staticmethod
+    def _get_stats(start_date, end_date):
+        """
+        Get the statistics over a period.
+        """
+        daily_stat_summary_query = model.DailyStatSummary.objects(
+            date__gte=start_date, date__lte=end_date
+        )
+
+        stats = {
+            'stats_global': [],
+            'stats_4g': [],
+        }
+        for daily_stat_summary in daily_stat_summary_query:
+            daily_stat_summary_dictionary = daily_stat_summary.to_mongo()
+            stats_global = daily_stat_summary_dictionary['stats_global']
+            stats_4g = daily_stat_summary_dictionary['stats_4g']
+
+            stats['stats_global'].append(stats_global)
+            stats['stats_4g'].append(stats_4g)
+
+        return stats
+
+    @staticmethod
+    def _assert_valid_date_range(start_date, end_date):
+        """
+        Assert that a given date range is consistent.
+        """
+        is_valid, error = check_valid_date_range(start_date, end_date, tz=config.TIMEZONE)
+        if not is_valid:
+            raise HTTPException.BadRequest(error)
+
+    def get(self):
+        """
+        Retrieve all statistics
+        """
+        default_start_date = datetime_to_date_string(
+            datetime.datetime.now(tz=config.TIMEZONE) - datetime.timedelta(days=6)
+        )
+        default_end_date = datetime_to_date_string(
+            datetime.datetime.now(tz=config.TIMEZONE)
+        )
+
+        start_date = request.args.get('start_date', default_start_date)
+        end_date = request.args.get('end_date', default_end_date)
+
+        self._assert_valid_date_range(start_date, end_date)
+
+        return self._get_stats(start_date, end_date)
+
+
 class NetworkUsageChart(ConnectedMixin, CacheMixin, Resource):
     """
-    Provide aggregated statistics
+    Provide aggregated statistics between Orange and FM.
     """
-    _MAX_DATE_RANGE_DAYS = 31  # Above this date range, an exception will be raised. This prevents computing stats over
-                               # too much documents, which could freeze the API and the database.
+    # Above this date range, an exception will be raised. This prevents computing stats over
+    # too much documents, which could freeze the API and the database.
+    _MAX_DATE_RANGE_DAYS = 31
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -248,15 +309,10 @@ class NetworkUsageChart(ConnectedMixin, CacheMixin, Resource):
 
     @staticmethod
     def _assert_valid_date_range(start_date, end_date):
-        date_regex = re.compile('^\d{8}$')
-        if not date_regex.match(start_date) or not date_regex.match(end_date):
-            raise HTTPException.BadRequest('Date must me in `YYYYMMDD` format.')
-        if end_date < start_date:
-            raise HTTPException.BadRequest('Start date must be lower than end date.')
-        if end_date > datetime.datetime.now(tz=config.TIMEZONE).strftime("%Y%m%d"):
-            raise HTTPException.BadRequest('End date can\'t be in the future.')
+        is_valid, error = check_valid_date_range(start_date, end_date, tz=config.TIMEZONE)
+        if not is_valid:
+            raise HTTPException.BadRequest(error)
         NetworkUsageChart._assert_maximum_timedelta(start_date, end_date, NetworkUsageChart._MAX_DATE_RANGE_DAYS)
-
 
     @staticmethod
     def _query_stat_aggregation(key, start_date, end_date, only_4g=False):
@@ -298,19 +354,16 @@ class NetworkUsageChart(ConnectedMixin, CacheMixin, Resource):
 
         return aggregation[0]['count']
 
-    @staticmethod
-    def _str_date(dt):
-        """
-        Convert a offset-aware datetime to a YYYYMMDD string.
-        """
-        return dt.strftime("%Y%m%d")
-
     def get(self):
             """
             Retrieve all statistics
             """
-            default_start_date = self._str_date(datetime.datetime.now(tz=config.TIMEZONE) - datetime.timedelta(days=6))
-            default_end_date = self._str_date(datetime.datetime.now(tz=config.TIMEZONE))
+            default_start_date = datetime_to_date_string(
+                datetime.datetime.now(tz=config.TIMEZONE) - datetime.timedelta(days=6)
+            )
+            default_end_date = datetime_to_date_string(
+                datetime.datetime.now(tz=config.TIMEZONE)
+            )
 
             start_date = request.args.get('start_date', default_start_date)
             end_date = request.args.get('end_date', default_end_date)
@@ -350,10 +403,11 @@ class NetworkUsageChart(ConnectedMixin, CacheMixin, Resource):
             }
 
             if default_start_date <= end_date:
-                # Cache one hour if stat is less than one week old
-                self.cache.set(start_date + '-' + end_date, stats, timeout=60 * 60)
+                    # Cache one hour if stat is less than one week old
+                    timeout = 60 * 60
             else:
                 # Cache forever otherwise because it cannot change again.
-                self.cache.set(start_date + '-' + end_date, stats, timeout=0)
+                timeout = 0
+            self.cache.set(start_date + '-' + end_date, stats, timeout=timeout)
 
             return stats

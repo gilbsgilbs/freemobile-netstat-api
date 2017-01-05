@@ -1,7 +1,6 @@
 from abc import ABCMeta
 import datetime
 
-from bson import Int64
 from mongoengine import (Document, DateTimeField, StringField, BooleanField, EmbeddedDocument, EmbeddedDocumentField,
                          LongField)
 

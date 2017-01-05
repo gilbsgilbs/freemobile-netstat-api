@@ -52,6 +52,13 @@ def datetime_to_epoch(dt):
     return int((dt - datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds())
 
 
+def datetime_to_date_string(dt):
+    """
+    Convert a offset-aware datetime to a YYYYMMDD string.
+    """
+    return dt.strftime("%Y%m%d")
+
+
 def date_string_to_datetime(date_string):
     """
     Convert a YYYYMMDD date to datetime
@@ -63,3 +70,27 @@ def date_string_to_datetime(date_string):
         raise ValueError
     return datetime.datetime.strptime(date_string, '%Y%m%d')
 
+
+_date_regex = re.compile('^\d{8}$')
+
+
+def check_valid_date_range(start_date, end_date, *, tz=None):
+    """
+    Assert that a given date range is valid.
+    :param start_date: The start date (in YYYYMMDD format)
+    :type start_date: str
+    :param end_date: The end date (in YYYYMMDD format)
+    :type end_date: str
+    :param tz: The timezone
+    :type tz: timezone
+    :return predicate: date range is valid, error
+    :rtype boolean,str
+    """
+    if not _date_regex.match(start_date) or not _date_regex.match(end_date):
+        return False, 'Date must me in `YYYYMMDD` format.'
+    if end_date < start_date:
+        return False, 'Start date must be lower than end date.'
+    if end_date > datetime.datetime.now(tz=tz).strftime("%Y%m%d"):
+        return False, 'End date can\'t be in future.'
+
+    return True, None

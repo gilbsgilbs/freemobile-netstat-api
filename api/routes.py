@@ -7,3 +7,4 @@ class Routing(object):
         api.add_resource(resources.Device, '/device/<string:device_id>')
         api.add_resource(resources.DeviceStat, '/device/<string:device_id>/daily/<string:date>')
         api.add_resource(resources.NetworkUsageChart, '/chart/network-usage')
+        api.add_resource(resources.DailyNetworkUsageChart, '/chart/daily-network-usage')
