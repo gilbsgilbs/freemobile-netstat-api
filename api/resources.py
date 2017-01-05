@@ -403,8 +403,8 @@ class NetworkUsageChart(ConnectedMixin, CacheMixin, Resource):
             }
 
             if default_start_date <= end_date:
-                    # Cache one hour if stat is less than one week old
-                    timeout = 60 * 60
+                # Cache one hour if stat is less than one week old
+                timeout = 60 * 60
             else:
                 # Cache forever otherwise because it cannot change again.
                 timeout = 0
